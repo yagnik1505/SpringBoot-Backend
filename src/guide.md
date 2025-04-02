@@ -6,13 +6,15 @@
 2. [Security Architecture](#security-architecture)
 3. [Authentication](#authentication)
 4. [User Roles](#user-roles)
-5. [API Endpoints](#api-endpoints)
+5. [Step-by-Step Usage Guide](#step-by-step-usage-guide)
+6. [API Endpoints](#api-endpoints)
    - [Authentication Endpoints](#authentication-endpoints)
    - [User Endpoints](#user-endpoints)
-   - [Task Endpoints](#task-endpoints)
    - [Category Endpoints](#category-endpoints)
-6. [Security Best Practices](#security-best-practices)
-7. [Troubleshooting](#troubleshooting)
+   - [Task Endpoints](#task-endpoints)
+7. [Testing with Postman](#testing-with-postman)
+8. [Security Best Practices](#security-best-practices)
+9. [Troubleshooting](#troubleshooting)
 
 ## Introduction
 
@@ -30,15 +32,15 @@ The security architecture is based on the following components:
 
 ## Authentication
 
-The application uses HTTP Basic Authentication. When accessing protected endpoints, you must include proper authentication credentials. There are two ways to authenticate:
+The application uses session-based authentication. When accessing protected endpoints, you must include proper authentication credentials. There are two ways to authenticate:
 
 1. **Login Endpoint:** Use the `/auth/login` endpoint to authenticate and receive a session ID
 2. **HTTP Basic Auth:** Include the `Authorization` header with Base64-encoded credentials
 
 Authentication flow:
-1. Register a user through `/auth/register` or `/users/register`
+1. Register a user through `/auth/register`, `/auth/admin/register`, or `/users/register`
 2. Login using username and password
-3. Include the session ID or authentication header in subsequent requests
+3. Include the session ID cookie (JSESSIONID) in subsequent requests
 
 ## User Roles
 
@@ -54,6 +56,71 @@ The application supports two roles:
    - Manage categories (create, update, delete)
    - View all users
    - Delete users
+
+## Step-by-Step Usage Guide
+
+Follow these steps to properly use the TODO application:
+
+### 1. Create an Admin User
+
+First, create an administrator who can manage categories:
+```
+POST /auth/admin/register
+```
+Request body:
+```json
+{
+  "username": "admin123",
+  "password": "adminpassword123"
+}
+```
+
+### 2. Create Categories
+
+Admins can create categories that users can assign tasks to:
+```
+POST /categories
+```
+Request body:
+```json
+{
+  "name": "Work"
+}
+```
+
+### 3. Register Regular Users
+
+Register regular users who can create and manage their own tasks:
+```
+POST /auth/register
+```
+Request body:
+```json
+{
+  "username": "user123",
+  "password": "password123"
+}
+```
+
+### 4. Create Tasks
+
+Users can create tasks and assign them to categories:
+```
+POST /tasks/{userId}/{categoryId}
+```
+Request body:
+```json
+{
+  "title": "Complete project",
+  "description": "Finish the Spring Security implementation",
+  "status": "NOT_COMPLETED",
+  "dueDate": "2023-08-15"
+}
+```
+
+### 5. Manage Tasks
+
+Users can update, delete, or mark tasks as completed using the respective endpoints.
 
 ## API Endpoints
 
@@ -72,6 +139,20 @@ Request body:
 ```
 Notes:
 - Creates a new user with the USER role
+
+#### Register a New Admin
+```
+POST /auth/admin/register
+```
+Request body:
+```json
+{
+  "username": "admin123",
+  "password": "adminpassword123"
+}
+```
+Notes:
+- Creates a new user with the ADMIN role
 
 #### Login
 ```
@@ -147,6 +228,57 @@ Security:
 - Only accessible to ADMIN users
 - Cannot delete a user with incomplete tasks
 
+### Category Endpoints
+
+#### Create a Category
+```
+POST /categories
+```
+Request body:
+```json
+{
+  "name": "Work"
+}
+```
+Security:
+- Only accessible to ADMIN users
+
+#### Update Category
+```
+PUT /categories/{id}
+```
+Security:
+- Only accessible to ADMIN users
+
+#### Get Category by ID
+```
+GET /categories/{id}
+```
+Security:
+- Accessible to USER and ADMIN roles
+
+#### Get All Categories
+```
+GET /categories/all
+```
+Security:
+- Accessible to USER and ADMIN roles
+
+#### Delete Category
+```
+DELETE /categories/{id}
+```
+Security:
+- Only accessible to ADMIN users
+- Cannot delete a category with incomplete tasks
+
+#### Get Tasks by Category
+```
+GET /categories/{categoryId}/tasks
+```
+Security:
+- Accessible to USER and ADMIN roles
+
 ### Task Endpoints
 
 #### Create a Task
@@ -216,56 +348,13 @@ GET /tasks/category/{categoryId}
 PUT /tasks/{id}/user/{userId}/complete
 ```
 
-### Category Endpoints
+## Testing with Postman
 
-#### Create a Category
-```
-POST /categories
-```
-Request body:
-```json
-{
-  "name": "Work"
-}
-```
-Security:
-- Only accessible to ADMIN users
+To test the API, use Postman or a similar tool. Follow these steps:
 
-#### Update Category
-```
-PUT /categories/{id}
-```
-Security:
-- Only accessible to ADMIN users
-
-#### Get Category by ID
-```
-GET /categories/{id}
-```
-Security:
-- Accessible to USER and ADMIN roles
-
-#### Get All Categories
-```
-GET /categories/all
-```
-Security:
-- Accessible to USER and ADMIN roles
-
-#### Delete Category
-```
-DELETE /categories/{id}
-```
-Security:
-- Only accessible to ADMIN users
-- Cannot delete a category with incomplete tasks
-
-#### Get Tasks by Category
-```
-GET /categories/{categoryId}/tasks
-```
-Security:
-- Accessible to USER and ADMIN roles
+1. Set up authentication by logging in and storing the session ID cookie.
+2. Test endpoints in the order specified in the Step-by-Step Usage Guide.
+3. Verify responses and ensure proper role-based access control.
 
 ## Security Best Practices
 
