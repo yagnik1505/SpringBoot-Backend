@@ -9,16 +9,17 @@ import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 
+import com.project.springproject.Entity.Role;
 import com.project.springproject.Entity.User;
 import com.project.springproject.Repository.UserRepository;
 
 
 @Service
 public class AuthService {
-	
-	@Autowired
+
+    @Autowired
     private UserRepository userRepository;
-    
+
     @Autowired
     private PasswordEncoder passwordEncoder;
 
@@ -30,23 +31,23 @@ public class AuthService {
             Authentication authentication = authenticationManager.authenticate(
                 new UsernamePasswordAuthenticationToken(username, password)
             );
-            
+
             SecurityContextHolder.getContext().setAuthentication(authentication);
             return "Authentication successful";
         } catch (AuthenticationException e) {
             return "Authentication failed: " + e.getMessage();
         }
     }
-    
+
     public void registerUser(String username, String password) {
         if (userRepository.findByUsername(username).isPresent()) {
             throw new RuntimeException("User already exists!");
         }
-        
+
         User user = new User();
         user.setUsername(username);
         user.setPassword(passwordEncoder.encode(password));
-        user.setRole("ROLE_USER"); 
+        user.setRole(Role.USER);
 
         userRepository.save(user);
     }

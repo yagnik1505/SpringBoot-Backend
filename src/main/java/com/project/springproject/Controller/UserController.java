@@ -4,78 +4,54 @@ import com.project.springproject.Entity.*;
 import com.project.springproject.Service.*;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.security.core.Authentication;
-import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
-import java.util.Optional;
 
 @RestController
 @RequestMapping("/users")
+@CrossOrigin(origins = "*")
 public class UserController {
 
     @Autowired
     private UserService userService;
 
-    @Autowired
-    private PasswordEncoder passwordEncoder;
-
-    // User Registration (Public)
-    @PostMapping()
-    public User createUser(@RequestBody User user) {
-        user.setPassword(passwordEncoder.encode(user.getPassword())); // Encrypt password
+    // Public endpoint for user registration
+    @PostMapping("/register")
+    public User registerUser(@RequestBody User user) {
         return userService.createUser(user);
     }
 
     // User can update only their own profile
+    @PreAuthorize("hasAnyRole('USER', 'ADMIN') and (authentication.name == @userService.getUserById(#id).username or hasRole('ADMIN'))")
     @PutMapping("/{id}")
     public ResponseEntity<String> updateUser(@PathVariable Long id, @RequestBody User updatedUser, Authentication authentication) {
-        Optional<User> userOptional = Optional.of(userService.getUserById(id));
-        if (userOptional.isPresent()) {
-            User user = userOptional.get();
-            if (!user.getUsername().equals(authentication.getName())) {
-                return ResponseEntity.status(403).body("You can only update your own profile.");
-            }
-            user.setUsername(updatedUser.getUsername());
-            user.setPassword(passwordEncoder.encode(updatedUser.getPassword())); // Encrypt new password
-            userService.updateUser(id, user);
-            return ResponseEntity.ok("Profile updated successfully.");
-        }
-        return ResponseEntity.status(404).body("User not found.");
+        userService.updateUser(id, updatedUser);
+        return ResponseEntity.ok("Profile updated successfully.");
     }
 
-    // User can retrieve only their own profile
+    // User can retrieve only their own profile or admin can access any profile
+    @PreAuthorize("hasAnyRole('USER', 'ADMIN') and (authentication.name == @userService.getUserById(#id).username or hasRole('ADMIN'))")
     @GetMapping("/{id}")
     public ResponseEntity<?> getUserById(@PathVariable Long id, Authentication authentication) {
-        Optional<User> userOptional = Optional.of(userService.getUserById(id));
-        if (userOptional.isPresent()) {
-            User user = userOptional.get();
-            if (!user.getUsername().equals(authentication.getName()) &&
-                !authentication.getAuthorities().stream().anyMatch(auth -> auth.getAuthority().equals("ROLE_ADMIN"))) {
-                return ResponseEntity.status(403).body("Access denied.");
-            }
-            return ResponseEntity.ok(user);
-        }
-        return ResponseEntity.status(404).body("User not found.");
+        User user = userService.getUserById(id);
+        return ResponseEntity.ok(user);
     }
 
     // Only ADMIN can view all users
+    @PreAuthorize("hasRole('ADMIN')")
     @GetMapping("/all")
-    public ResponseEntity<List<User>> getAllUsers(Authentication authentication) {
-        if (authentication.getAuthorities().stream().anyMatch(auth -> auth.getAuthority().equals("ROLE_ADMIN"))) {
-            return ResponseEntity.ok(userService.getAllUsers());
-        }
-        return ResponseEntity.status(403).body(null);
+    public ResponseEntity<List<User>> getAllUsers() {
+        return ResponseEntity.ok(userService.getAllUsers());
     }
 
     // Only ADMIN can delete users
+    @PreAuthorize("hasRole('ADMIN')")
     @DeleteMapping("/{id}")
-    public ResponseEntity<String> deleteUser(@PathVariable Long id, Authentication authentication) {
-        if (authentication.getAuthorities().stream().anyMatch(auth -> auth.getAuthority().equals("ROLE_ADMIN"))) {
-            userService.deleteUser(id);
-            return ResponseEntity.ok("User deleted successfully.");
-        }
-        return ResponseEntity.status(403).body("Only ADMIN can delete users.");
+    public ResponseEntity<String> deleteUser(@PathVariable Long id) {
+        userService.deleteUser(id);
+        return ResponseEntity.ok("User deleted successfully.");
     }
 }
