@@ -44,11 +44,12 @@ public class SecurityConfig {
             .csrf(AbstractHttpConfigurer::disable)
             .cors(cors -> cors.configurationSource(corsConfigurationSource()))
             .authorizeHttpRequests(auth -> auth
-                .requestMatchers("/auth/register", "/auth/login", "/users/register").permitAll()
+                .requestMatchers("/auth/register", "/auth/login", "/users/register", "/auth/admin/register").permitAll()
                 .anyRequest().authenticated())
             .httpBasic(httpBasic -> {})
             .sessionManagement(session -> session
-                .sessionCreationPolicy(SessionCreationPolicy.STATELESS));
+                // Change from STATELESS to ALWAYS to support session-based auth
+                .sessionCreationPolicy(SessionCreationPolicy.ALWAYS));
 
         return http.build();
     }
