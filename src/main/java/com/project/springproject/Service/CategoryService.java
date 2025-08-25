@@ -14,7 +14,7 @@ public class CategoryService {
     private TaskRepository taskRepository;
 
     public Category createCategory(Category category) {
-        // Check if category name already exists
+        
         List<Category> existingCategories = categoryRepository.findAll();
         
         for (Category existingCategory : existingCategories) {
@@ -27,18 +27,17 @@ public class CategoryService {
     }
     
     public Category updateCategory(Long id, Category updatedCategory) {
-        // Find existing category
-        Optional<Category> existingCategoryOptional = categoryRepository.findById(id);
         
-        if (!existingCategoryOptional.isPresent()) {
+        Optional<Category> ex = categoryRepository.findById(id);
+        
+        if (!ex.isPresent()) {
             throw new RuntimeException("Category not found with ID: " + id);
         }
         
-        Category existingCategory = existingCategoryOptional.get();
+        Category existingCategory = ex.get();
         
-        // Update category name
         if (updatedCategory.getName() != null) {
-            // Check if new name already exists
+        
             List<Category> allCategories = categoryRepository.findAll();
             
             for (Category category : allCategories) {
@@ -69,7 +68,7 @@ public class CategoryService {
     }
     
     public void deleteCategory(Long categoryId) {
-        // Find category first to ensure it exists
+       
         Optional<Category> categoryOptional = categoryRepository.findById(categoryId);
         
         if (!categoryOptional.isPresent()) {
@@ -78,10 +77,10 @@ public class CategoryService {
         
         Category category = categoryOptional.get();
         
-        // Check if the category has any pending tasks
-        List<Task> categoryTasks = taskRepository.findByCategoryId(categoryId);
+      
+        List<Task> categoryTasks = taskRepository.findAllByCategoryId(categoryId);
         
-        // If tasks exist, check their status
+       
         if (categoryTasks != null && !categoryTasks.isEmpty()) {
             for (Task task : categoryTasks) {
                 if (task.getStatus() != TaskStatus.COMPLETED) {
@@ -90,7 +89,7 @@ public class CategoryService {
             }
         }
         
-        // If no pending tasks, delete the category
+       
         categoryRepository.delete(category);
     }
 }

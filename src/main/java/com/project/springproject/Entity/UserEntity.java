@@ -1,20 +1,24 @@
-package com.project.springproject.dto;
+package com.project.springproject.Entity;
+import jakarta.persistence.*;
 
-public class AuthRequest {
+@Entity
+@Table(name = "users")
+public class UserEntity {
+
+    @Id
     private String username;
+
     private String password;
+    
+    private boolean enabled = true; 
 
-    // Default constructor
-    public AuthRequest() {
-    }
+    public UserEntity() {}
 
-    // Parameterized constructor
-    public AuthRequest(String username, String password) {
+    public UserEntity(String username, String password) {
         this.username = username;
         this.password = password;
     }
 
-    // Getters and Setters
     public String getUsername() {
         return username;
     }
@@ -29,5 +33,13 @@ public class AuthRequest {
 
     public void setPassword(String password) {
         this.password = password;
+    }
+
+    public boolean isEnabled() {
+        return enabled;
+    }
+
+    public void setEnabled(boolean enabled) {
+        this.enabled = enabled;
     }
 }

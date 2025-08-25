@@ -10,104 +10,111 @@ import java.util.*;
 public class TaskService {
     @Autowired
     private TaskRepository taskrepo;
-    
+
     @Autowired 
     private UserRepository userrepo;
-    
+
     @Autowired
     private CategoryRepository caterepo;
 
-    public Task createTask(Task task, Long userId, Long categoryId) {
-        Optional<User> userobj = userrepo.findById(userId);
-        if (!userobj.isPresent()) {
-            throw new RuntimeException("User with ID " + userId + " not found");
+    public Task createTask(Task task, String username, Long categoryId) {
+        if (!userrepo.existsById(username)) {
+            throw new RuntimeException("User with username '" + username + "' not found");
         }
-        User user = userobj.get();
 
-        Optional<Category> categoryobj = caterepo.findById(categoryId);
-        if (!categoryobj.isPresent()) {
+        if (!caterepo.existsById(categoryId)) {
             throw new RuntimeException("Category with ID " + categoryId + " not found");
         }
-        Category category = categoryobj.get();
-        
-        task.setUser(user);
-        task.setCategory(category);
 
+        task.setUsername(username);
+        task.setCategory(caterepo.findById(categoryId).get());
         return taskrepo.save(task);
     }
 
-    public List<Task> getAllTasks(Long userId) {
-        if (!userrepo.existsById(userId)) {
-            throw new RuntimeException("User not created yet.");
+ 
+    public List<Task> getAllTasks(String username) {
+        if (!userrepo.existsById(username)) {
+            throw new RuntimeException("User not found");
         }
-        
-        return taskrepo.findByUserId(userId);
+        return taskrepo.findByUsername(username);
     }
 
-    public Task getTaskById(Long id, Long userId) {
-        Optional<Task> taskOptional = taskrepo.findByIdAndUserId(id, userId);
-        
-        if (!taskOptional.isPresent()) {
-            throw new RuntimeException("Task not exist for given user ");
+   
+    public Task getTaskById(Long id, String username) {
+        if (!taskrepo.existsById(id)) {
+            throw new RuntimeException("Task not found");
         }
-        
-        return taskOptional.get();
+
+        Task task = taskrepo.findById(id).get();
+        if (!task.getUsername().equals(username)) {
+            throw new RuntimeException("Task does not belong to the user");
+        }
+
+        return task;
     }
 
-    public Task updateTask(Long id, Task updatetask, Long userid) {
-        Optional<Task> taskobj = taskrepo.findByIdAndUserId(id, userid);
-        
-        if (!taskobj.isPresent()) {
-            throw new RuntimeException("Task not exist for given user");
+
+    public Task updateTask(Long id, Task updatetask, String username) {
+        if (!taskrepo.existsById(id)) {
+            throw new RuntimeException("Task not found");
         }
-        
-        Task task = taskobj.get();
-        
+
+        Task task = taskrepo.findById(id).get();
+        if (!task.getUsername().equals(username)) {
+            throw new RuntimeException("Task does not belong to the user");
+        }
+
         task.setTitle(updatetask.getTitle());
         task.setDescription(updatetask.getDescription());
         task.setStatus(updatetask.getStatus());
         task.setDueDate(updatetask.getDueDate());
-        
+
         return taskrepo.save(task);
     }
 
-    public void deleteTask(Long id, Long userId) {
-        Optional<Task> task = taskrepo.findByIdAndUserId(id, userId);
-        
-        if (!task.isPresent()) {
-            throw new RuntimeException("Task not exist for given user");
+
+    public void deleteTask(Long id, String username) {
+        if (!taskrepo.existsById(id)) {
+            throw new RuntimeException("Task not found");
         }
-        
-        taskrepo.delete(task.get());
+
+        Task task = taskrepo.findById(id).get();
+        if (!task.getUsername().equals(username)) {
+            throw new RuntimeException("Task does not belong to the user");
+        }
+
+        taskrepo.delete(task);
     }
 
-    public List<Task> getTasksByStatus(Long userId, TaskStatus status) {
-        if (!userrepo.existsById(userId)) {
-            throw new RuntimeException("user not exist");
+
+    public List<Task> getTasksByStatus(String username, TaskStatus status) {
+        if (!userrepo.existsById(username)) {
+            throw new RuntimeException("User not found");
         }
-        
-        return taskrepo.findByStatusAndUserId(status, userId);
+        return taskrepo.findByStatusAndUsername(status, username);
     }
-    
+
+
     public List<Task> getTasksByCategory(Long categoryId) {
-        if(!caterepo.existsById(categoryId)) {
-            throw new RuntimeException("category doesnot exist");
+        if (!caterepo.existsById(categoryId)) {
+            throw new RuntimeException("Category not found");
         }
-        
         return taskrepo.findAllByCategoryId(categoryId);
     }
-    
-    public Task markTaskAsCompleted(Long taskId, Long userId) {
-        Optional<Task> taskOptional = taskrepo.findByIdAndUserId(taskId, userId);
-        
-        if (!taskOptional.isPresent()) {
-            throw new RuntimeException("Task not found or does not belong to user");
+
+
+    public Task markTaskAsCompleted(Long taskId, String username) {
+        if (!taskrepo.existsById(taskId)) {
+            throw new RuntimeException("Task not found");
         }
-        
-        Task task = taskOptional.get();
+
+        Task task = taskrepo.findById(taskId).get();
+        if (!task.getUsername().equals(username)) {
+            throw new RuntimeException("Task does not belong to the user");
+        }
+
         task.setStatus(TaskStatus.COMPLETED);
-        
         return taskrepo.save(task);
     }
-}
 
+}

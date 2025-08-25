@@ -12,11 +12,11 @@ public class Category {
     private Long id;
     
     @Column(nullable = false, unique = true)
-    private String name; // Example: "Work", "Personal", "Fitness"
+    private String name; 
     
     @OneToMany(mappedBy = "category", cascade = CascadeType.ALL)
     @JsonManagedReference("category-tasks")
-    private List<Task> tasks; // One category can have multiple tasks
+    private List<Task> tasks; 
 
     // Constructors
     public Category() {}

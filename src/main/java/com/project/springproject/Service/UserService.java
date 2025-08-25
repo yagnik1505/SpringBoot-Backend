@@ -1,103 +1,50 @@
 package com.project.springproject.Service;
-import com.project.springproject.Entity.*;
 
-import com.project.springproject.Repository.*;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.security.core.userdetails.User;
+import org.springframework.security.core.userdetails.UserDetails;
 import org.springframework.security.crypto.password.PasswordEncoder;
+import org.springframework.security.provisioning.JdbcUserDetailsManager;
 import org.springframework.stereotype.Service;
-import java.util.List;
-import java.util.Optional;
+import org.springframework.transaction.annotation.Transactional;
+
+import com.project.springproject.Entity.UserEntity;
+import com.project.springproject.Exception.UserAlreadyExistsException;
+import com.project.springproject.Repository.UserRepository;
+
 
 @Service
 public class UserService {
-    @Autowired
-    private UserRepository userRepository;
+
+    private final UserRepository userRepository;
+    private final PasswordEncoder passwordEncoder;
+    private final JdbcUserDetailsManager userDetailsManager;
 
     @Autowired
-    private TaskRepository taskRepository;
-
-    @Autowired
-    private PasswordEncoder passwordEncoder;
-
-    public User createUser(User user) {
-        // Check if username already exists
-        Optional<User> existingUser = userRepository.findByUsername(user.getUsername());
-        if (existingUser.isPresent()) {
-            throw new RuntimeException("Username already exists");
+    public UserService(UserRepository userRepository, PasswordEncoder passwordEncoder, JdbcUserDetailsManager userDetailsManager) {
+        this.userRepository = 
+        		userRepository;
+        this.passwordEncoder = passwordEncoder;
+        this.userDetailsManager = userDetailsManager;
+    }
+    
+    @Transactional
+    public UserEntity registerUser(UserEntity user) {
+        if (userDetailsManager.userExists(user.getUsername())) {
+            throw new UserAlreadyExistsException("User already exists: " + user.getUsername());
         }
 
-        // Encode password before saving
-        user.setPassword(passwordEncoder.encode(user.getPassword()));
+        String encodedPassword = passwordEncoder.encode(user.getPassword());
+        user.setPassword(encodedPassword);
+
+        UserDetails userDetails = User.withUsername(user.getUsername())
+                .password(encodedPassword)
+                .roles("USER")
+                .build();
+
+        userDetailsManager.createUser(userDetails);
         return userRepository.save(user);
     }
-
-    public User updateUser(Long id, User updatedUser) {
-        // Find existing user
-        Optional<User> existingUserOptional = userRepository.findById(id);
-
-        if (!existingUserOptional.isPresent()) {
-            throw new RuntimeException("User not found with ID: " + id);
-        }
-
-        User existingUser = existingUserOptional.get();
-
-        // Update username if provided and not already taken
-        if (updatedUser.getUsername() != null) {
-            Optional<User> userWithSameUsername = userRepository.findByUsername(updatedUser.getUsername());
-
-            if (userWithSameUsername.isPresent() && !userWithSameUsername.get().getId().equals(id)) {
-                throw new RuntimeException("Username already exists");
-            }
-
-            existingUser.setUsername(updatedUser.getUsername());
-        }
-
-        // Update password if provided
-        if (updatedUser.getPassword() != null && !updatedUser.getPassword().isEmpty()) {
-            existingUser.setPassword(passwordEncoder.encode(updatedUser.getPassword()));
-        }
-
-        return userRepository.save(existingUser);
-    }
-
-    public User getUserById(Long id) {
-        Optional<User> userOptional = userRepository.findById(id);
-
-        if (!userOptional.isPresent()) {
-            System.err.println("User not Found");
-            throw new RuntimeException("User not found with ID: " + id);
-        }
-
-        return userOptional.get();
-    }
-
-    public List<User> getAllUsers() {
-        return userRepository.findAll();
-    }
-
-    public void deleteUser(Long userId) {
-        // Find user first to ensure it exists
-        Optional<User> userOptional = userRepository.findById(userId);
-
-        if (!userOptional.isPresent()) {
-            throw new RuntimeException("User not found with ID: " + userId);
-        }
-
-        User user = userOptional.get();
-
-        // Check if the user has any pending tasks
-        List<Task> userTasks = taskRepository.findByUserId(userId);
-
-        // If tasks exist, check their status
-        if (userTasks != null && !userTasks.isEmpty()) {
-            for (Task task : userTasks) {
-                if (task.getStatus() != TaskStatus.COMPLETED) {
-                    throw new RuntimeException("Cannot delete user. All tasks must be completed first.");
-                }
-            }
-        }
-
-        // If no pending tasks, delete the user
-        userRepository.delete(user);
-    }
+  
 }
+
